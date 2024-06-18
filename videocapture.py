@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 from trocr import TROCR
 
 def roi(frame):
@@ -6,6 +7,22 @@ def roi(frame):
     roi = cv2.selectROI("SelectROI", frame)
     cv2.destroyWindow('SelectROI')
     return roi
+
+def preprocess_image(frame):
+    # 그레이스케일 변환
+    gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Gaussian Blur 적용
+    blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
+
+    # Otsu's Binarization 적용
+    _, binary_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Morphological Transformations 적용 (열림 연산)
+    kernel = np.ones((5, 5), np.uint8)
+    processed_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
+
+    return processed_image
 
 def main(rtsp_url):
     trocr = TROCR()
@@ -39,6 +56,19 @@ def main(rtsp_url):
         
         # 이미지 크기 변경
         resized_image = cv2.resize(cropped_frame, new_size, interpolation=cv2.INTER_LINEAR)
+
+        # 이미지 전처리
+        processed_image = preprocess_image(resized_image)
+        # 전처리된 이미지 표시
+        cv2.imshow("Processed ROI", processed_image)
+        cv2.waitKey(3000)  # 3초 동안 표시
+        cv2.destroyAllWindows()
+
+        # Vision Encoder Decoder 모델에 입력
+        pixel_values = trocr.processor(images=processed_image, return_tensors="pt").pixel_values
+        generated_ids = trocr.model.generate(pixel_values)
+        generated_text = trocr.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        print(generated_text)
 
         text = trocr.run(resized_image)
 
