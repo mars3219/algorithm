@@ -24,6 +24,18 @@ def preprocess_image(frame):
 
     return processed_image
 
+def preprocess(self, img, cfg, kernel_size=(5, 5)):
+    img = cv2.GaussianBlur(img, (cfg["gbfilter"], cfg["gbfilter"]), 0)
+
+    _, dst = cv2.threshold(img, cfg["threshold"], 255, cv2.THRESH_BINARY)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, kernel_size)
+    dst = cv2.morphologyEx(dst, cv2.MORPH_CLOSE, kernel)
+    k = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
+    dst = cv2.erode(dst, k)
+    # dst = cv2.morphologyEx(dst, cv2.MORPH_OPEN, kernel)
+    return dst
+
 def main(rtsp_url):
     trocr = TROCR()
     first_frame = True
