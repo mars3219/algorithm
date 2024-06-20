@@ -26,21 +26,10 @@ def roi(frame):
 #     return processed_image
 
 def preprocess_image(img):
-    img = cv2.GaussianBlur(img, (7, 7), 0)
-
-    _, dst = cv2.threshold(img, 180, 255, cv2.THRESH_BINARY)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5,5))
-    dst1 = cv2.morphologyEx(dst, cv2.MORPH_CLOSE, kernel)
-    k = cv2.getStructuringElement(cv2.MORPH_RECT, (11,11))
-    dst2 = cv2.erode(dst1, k)
-    # dst = cv2.morphologyEx(dst, cv2.MORPH_OPEN, kernel)
-    # cv2.imshow('dst', dst)
-    # cv2.imshow('dst1', dst1)
-    # cv2.imshow('dst2', dst2)
-    # cv2.waitKey(0)
-    dst2 = cv2.cvtColor(dst2, cv2.COLOR_GRAY2BGR)
-    return dst2
+    # cv2.imwrite('preprocessed.png', img)
+    _, dst = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
+    dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
+    return dst
 
 def main(rtsp_url):
     trocr = TROCR()
@@ -82,28 +71,19 @@ def main(rtsp_url):
 
         # 이미지 전처리
         processed_image = preprocess_image(resized_image)
-        # 전처리된 이미지 표시
-        # cv2.imshow("Processed ROI", processed_image)
-        # cv2.waitKey(3000)  # 3초 동안 표시
-        # cv2.destroyAllWindows()
-
-        # # Vision Encoder Decoder 모델에 입력
-        # pixel_values = trocr.processor(images=processed_image, return_tensors="pt").pixel_values
-        # generated_ids = trocr.model.generate(pixel_values)
-        # generated_text = trocr.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        # print(generated_text)
 
         st = time.time()
         text = trocr.run(processed_image)
         end = time.time()
 
-        print(end-st)
+        print(f'값: {text} \t 연산시간: {end-st: .2f}')
 
         # 분석된 프레임 표시
-        cv2.putText(frame1, text, (x, y-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(frame1, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
         # 프레임 표시
-        cv2.imshow("Frame", frame1)
+        cv2.imshow("Frame", processed_image)
+        cv2.imshow("original Frame", frame1)
 
         # 'q' 키를 누르면 루프 종료
         if cv2.waitKey(1) & 0xFF == ord('q'):
